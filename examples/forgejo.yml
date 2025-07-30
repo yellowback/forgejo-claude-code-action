@@ -35,7 +35,7 @@ jobs:
           fetch-depth: 1
 
       - name: Run Claude Forgejo Action
-        uses: https://github.com/anthropics/claude-code-action@forgejo
+        uses: https://github.com/yellowback/forgejo-claude-code-action@v0-forgejo
         # Or use your forked version:
         # uses: https://your-forgejo.com/actions/claude-code-action-forgejo@main
         with:
