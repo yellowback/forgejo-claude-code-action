@@ -26,7 +26,8 @@ This is a Forgejo-compatible version of the Claude Code Action that enables Clau
 1. Go to your Forgejo user settings
 2. Navigate to Applications → Access Tokens
 3. Generate a new token with the following permissions:
-   - `repo`: Full repository access
+   - `repository`: Full repository access
+   - `write:repository`: Write access to repository
    - `issue`: Issue and PR access
    - `write:issue`: Comment creation
 
@@ -77,7 +78,6 @@ jobs:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           # Or use: anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           timeout_minutes: "180"
-          allowed_tools: "read,write,bash,grep,ls"
 ```
 
 > **📋 Full Example**: For a complete workflow with all trigger conditions, custom instructions, and configuration options, see [`examples/forgejo.yml`](./examples/forgejo.yml)
