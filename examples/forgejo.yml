@@ -1,0 +1,63 @@
+name: Claude Forgejo Assistant
+
+on:
+  issue_comment:
+    types: [created]
+  pull_request:
+    types: [opened, synchronize]
+  issues:
+    types: [opened, assigned, labeled]
+
+jobs:
+  claude-forgejo-action:
+    # Trigger conditions for Forgejo
+    if: |
+      (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude')) ||
+      (github.event_name == 'issues' && (
+        contains(github.event.issue.body, '@claude') ||
+        (github.event.action == 'assigned' && github.event.assignee.login == 'claude') ||
+        (github.event.action == 'labeled' && github.event.label.name == 'claude')
+      )) ||
+      (github.event_name == 'pull_request' && contains(github.event.pull_request.body, '@claude'))
+    
+    runs-on: docker
+    container:
+      image: node:20-alpine
+    
+    steps:
+      - name: Install git and other dependencies
+        run: |
+          apk add --no-cache git bash curl
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Run Claude Forgejo Action
+        uses: https://github.com/anthropics/claude-code-action@forgejo-support
+        # Or use your forked version:
+        # uses: https://your-forgejo.com/actions/claude-code-action-forgejo@main
+        with:
+          # Forgejo configuration
+          use_forgejo: "true"
+          forgejo_url: ${{ env.GITHUB_API_URL }}  # Forgejo sets this automatically
+          forgejo_token: ${{ secrets.FORGEJO_TOKEN }}
+          
+          # Claude configuration
+          #anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          #model: "claude-3-5-sonnet-20241022"
+          
+          # Action behavior
+          trigger_phrase: "@claude"
+          timeout_minutes: "30"
+          branch_prefix: "claude/"
+          use_sticky_comment: "true"
+          
+          # Tools configuration
+          allowed_tools: "read,write,bash,grep,ls"
+          custom_instructions: |
+            You are working with a Forgejo instance, not GitHub.
+            Use REST API calls when needed, as GraphQL is not available.
+            Be aware that some GitHub-specific features may not be available.

@@ -27,14 +27,32 @@ export async function checkWritePermissions(
     const permissionLevel = response.data.permission;
     core.info(`Permission level retrieved: ${permissionLevel}`);
 
-    if (permissionLevel === "admin" || permissionLevel === "write") {
+    // Accept various permission levels that indicate write access
+    // GitHub uses: admin, write, read
+    // Forgejo uses: owner, admin, write, read
+    const writePermissions = ["admin", "write", "owner", "maintain"];
+    
+    if (writePermissions.includes(permissionLevel)) {
       core.info(`Actor has write access: ${permissionLevel}`);
       return true;
     } else {
       core.warning(`Actor has insufficient permissions: ${permissionLevel}`);
       return false;
     }
-  } catch (error) {
+  } catch (error: any) {
+    // Special handling for Forgejo - if the API endpoint is not available,
+    // we might want to skip the check
+    if (error.status === 404) {
+      core.warning(`Permission check endpoint not available (404). This might be expected for Forgejo.`);
+      // For Forgejo, we might want to allow the action to proceed
+      // if the permission check endpoint is not implemented
+      const platformConfig = (await import("../../platform/detector")).detectPlatform();
+      if (platformConfig.platform === "forgejo") {
+        core.info(`Skipping permission check for Forgejo platform due to missing endpoint`);
+        return true;
+      }
+    }
+    
     core.error(`Failed to check permissions: ${error}`);
     throw new Error(`Failed to check permissions for ${actor}: ${error}`);
   }

@@ -23,6 +23,8 @@ import { GITHUB_SERVER_URL } from "../github/api/config";
 import type { Mode, ModeContext } from "../modes/types";
 export type { CommonFields, PreparedContext } from "./types";
 
+import { getExternalBaseUrl as getBaseUrl } from "../platform/url-utils";
+
 const BASE_ALLOWED_TOOLS = [
   "Edit",
   "MultiEdit",
@@ -692,11 +694,13 @@ ${context.directPrompt ? `   - CRITICAL: Direct user instructions were provided 
       - Mark each subtask as completed as you progress.${getCommitInstructions(eventData, githubData, context, useCommitSigning)}
       ${
         eventData.claudeBranch
-          ? `- Provide a URL to create a PR manually in this format:
-        [Create a PR](${GITHUB_SERVER_URL}/${context.repository}/compare/${eventData.baseBranch}...<branch-name>?quick_pull=1&title=<url-encoded-title>&body=<url-encoded-body>)
+          ? (() => {
+              const externalBaseUrl = getBaseUrl();
+              return `- Provide a URL to create a PR manually in this format:
+        [Create a PR](${externalBaseUrl}/${context.repository}/compare/${eventData.baseBranch}...<branch-name>?quick_pull=1&title=<url-encoded-title>&body=<url-encoded-body>)
         - IMPORTANT: Use THREE dots (...) between branch names, not two (..)
-          Example: ${GITHUB_SERVER_URL}/${context.repository}/compare/main...feature-branch (correct)
-          NOT: ${GITHUB_SERVER_URL}/${context.repository}/compare/main..feature-branch (incorrect)
+          Example: ${externalBaseUrl}/${context.repository}/compare/main...feature-branch (correct)
+          NOT: ${externalBaseUrl}/${context.repository}/compare/main..feature-branch (incorrect)
         - IMPORTANT: Ensure all URL parameters are properly encoded - spaces should be encoded as %20, not left as spaces
           Example: Instead of "fix: update welcome message", use "fix%3A%20update%20welcome%20message"
         - The target-branch should be '${eventData.baseBranch}'.
@@ -705,7 +709,8 @@ ${context.directPrompt ? `   - CRITICAL: Direct user instructions were provided 
           - A clear description of the changes
           - Reference to the original ${eventData.isPR ? "PR" : "issue"}
           - The signature: "Generated with [Claude Code](https://claude.ai/code)"
-        - Just include the markdown link with text "Create a PR" - do not add explanatory text before it like "You can create a PR using this link"`
+        - Just include the markdown link with text "Create a PR" - do not add explanatory text before it like "You can create a PR using this link"`;
+            })()
           : ""
       }
 
@@ -749,7 +754,7 @@ ${
 - Display the todo list as a checklist in the GitHub comment and mark things off as you go.
 - REPOSITORY SETUP INSTRUCTIONS: The repository's CLAUDE.md file(s) contain critical repo-specific setup instructions, development guidelines, and preferences. Always read and follow these files, particularly the root CLAUDE.md, as they provide essential context for working with the codebase effectively.
 - Use h3 headers (###) for section titles in your comments, not h1 headers (#).
-- Your comment must always include the job run link (and branch link if there is one) at the bottom.
+- IMPORTANT: Do NOT include job run links or branch links in your comments. The system will automatically add these links after your comment is posted.
 
 CAPABILITIES AND LIMITATIONS:
 When users ask you to do something, be aware of what you can and cannot do. This section helps you understand how to respond when users request actions outside your scope.

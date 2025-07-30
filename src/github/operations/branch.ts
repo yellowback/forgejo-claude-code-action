@@ -12,6 +12,7 @@ import type { ParsedGitHubContext } from "../context";
 import type { GitHubPullRequest } from "../types";
 import type { Octokits } from "../api/client";
 import type { FetchDataResult } from "../data/fetcher";
+import { detectPlatform, Platform } from "../../platform/detector";
 
 export type BranchInfo = {
   baseBranch: string;
@@ -101,14 +102,35 @@ export async function setupBranch(
 
   try {
     // Get the SHA of the source branch to verify it exists
-    const sourceBranchRef = await octokits.rest.git.getRef({
-      owner,
-      repo,
-      ref: `heads/${sourceBranch}`,
-    });
-
-    const currentSHA = sourceBranchRef.data.object.sha;
-    console.log(`Source branch SHA: ${currentSHA}`);
+    let currentSHA: string;
+    
+    // For Forgejo, we need to handle the git refs API differently
+    const platformConfig = detectPlatform();
+    if (platformConfig.platform === Platform.Forgejo) {
+      // Directly use the REST API for Forgejo to avoid Octokit's URL construction issues
+      try {
+        // Use the branches API instead of git refs API for better compatibility
+        const branchResponse = await octokits.rest.repos.getBranch({
+          owner,
+          repo,
+          branch: sourceBranch,
+        });
+        currentSHA = branchResponse.data.commit.sha;
+        console.log(`Source branch SHA (via branches API): ${currentSHA}`);
+      } catch (error: any) {
+        console.error(`Failed to get branch via branches API: ${error.message}`);
+        throw new Error(`Source branch '${sourceBranch}' not found`);
+      }
+    } else {
+      // Use standard git refs API for GitHub
+      const sourceBranchRef = await octokits.rest.git.getRef({
+        owner,
+        repo,
+        ref: `heads/${sourceBranch}`,
+      });
+      currentSHA = sourceBranchRef.data.object.sha;
+      console.log(`Source branch SHA: ${currentSHA}`);
+    }
 
     // For commit signing, defer branch creation to the file ops server
     if (context.inputs.useCommitSigning) {

@@ -13,6 +13,8 @@ import {
 import { GITHUB_SERVER_URL } from "../github/api/config";
 import { checkAndCommitOrDeleteBranch } from "../github/operations/branch-cleanup";
 import { updateClaudeComment } from "../github/operations/comments/update-claude-comment";
+import { detectPlatform, Platform } from "../platform/detector";
+import { getExternalBaseUrl } from "../platform/url-utils";
 
 async function run() {
   try {
@@ -26,8 +28,32 @@ async function run() {
     const { owner, repo } = context.repository;
     const octokit = createOctokit(githubToken);
 
-    const serverUrl = GITHUB_SERVER_URL;
-    const jobUrl = `${serverUrl}/${owner}/${repo}/actions/runs/${process.env.GITHUB_RUN_ID}`;
+    const platformConfig = detectPlatform();
+    const serverUrl = platformConfig.platform === Platform.Forgejo ? getExternalBaseUrl() : GITHUB_SERVER_URL;
+    
+    // Determine the run ID - For Forgejo, use GITHUB_RUN_NUMBER
+    const runId = platformConfig.platform === Platform.Forgejo 
+                  ? process.env.GITHUB_RUN_NUMBER || process.env.FORGEJO_RUN_NUMBER
+                  : process.env.GITHUB_RUN_ID;
+    
+    // Debug: Log environment variables for Forgejo
+    if (platformConfig.platform === Platform.Forgejo) {
+      console.log("Platform: Forgejo - Using GITHUB_RUN_NUMBER for action URL");
+      console.log("GITHUB_RUN_NUMBER:", process.env.GITHUB_RUN_NUMBER);
+      console.log("FORGEJO_RUN_NUMBER:", process.env.FORGEJO_RUN_NUMBER);
+      console.log("GITHUB_RUN_ID (not used):", process.env.GITHUB_RUN_ID);
+    }
+    
+    // Construct the job URL
+    let jobUrl;
+    if (runId) {
+      jobUrl = `${serverUrl}/${owner}/${repo}/actions/runs/${runId}`;
+      console.log(`Generated job URL: ${jobUrl}`);
+    } else {
+      // Fallback: link to the actions page
+      console.warn("No run ID found in environment variables, using fallback URL");
+      jobUrl = `${serverUrl}/${owner}/${repo}/actions`;
+    }
 
     let comment;
     let isPRReviewComment = false;
@@ -132,6 +158,7 @@ async function run() {
             const prBody = encodeURIComponent(
               `This PR addresses ${entityType.toLowerCase()} #${context.entityNumber}\n\nGenerated with [Claude Code](https://claude.ai/code)`,
             );
+            // Both GitHub and Forgejo use the same compare URL format
             const prUrl = `${serverUrl}/${owner}/${repo}/compare/${baseBranch}...${claudeBranch}?quick_pull=1&title=${prTitle}&body=${prBody}`;
             prLink = `\n[Create a PR](${prUrl})`;
           }

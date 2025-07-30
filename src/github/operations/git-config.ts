@@ -54,9 +54,26 @@ export async function configureGitAuth(
 
   // Update the remote URL to include the token for authentication
   console.log("Updating remote URL with authentication...");
-  const remoteUrl = `https://x-access-token:${githubToken}@${serverUrl.host}/${context.repository.owner}/${context.repository.repo}.git`;
+  
+  // Get the current remote URL to preserve the protocol and host
+  const currentRemoteUrl = await $`git config --get remote.origin.url`.text();
+  const trimmedUrl = currentRemoteUrl.trim();
+  console.log(`Current remote URL: ${trimmedUrl}`);
+  
+  // Parse the current URL to extract protocol and host
+  const urlMatch = trimmedUrl.match(/^(https?):\/\/([^\/]+)\//);
+  if (!urlMatch) {
+    console.error(`Failed to parse remote URL: ${trimmedUrl}`);
+    console.log("Note: SSH URLs are not supported for token authentication");
+    throw new Error("Invalid remote URL format - only HTTP(S) URLs are supported");
+  }
+  
+  const protocol = urlMatch[1];
+  const host = urlMatch[2];
+  
+  const remoteUrl = `${protocol}://x-access-token:${githubToken}@${host}/${context.repository.owner}/${context.repository.repo}.git`;
   await $`git remote set-url origin ${remoteUrl}`;
-  console.log("✓ Updated remote URL with authentication token");
+  console.log(`✓ Updated remote URL with authentication token (using ${protocol}://${host})`);
 
   console.log("Git authentication configured successfully");
 }

@@ -157,10 +157,18 @@ export function updateCommentBody(input: CommentUpdateInput): string {
 
     // If we don't have a URL yet but have a branch name, construct it
     if (!branchUrl && finalBranchName) {
-      // Extract owner/repo from jobUrl
-      const repoMatch = jobUrl.match(/github\.com\/([^\/]+)\/([^\/]+)\//);
-      if (repoMatch) {
-        branchUrl = `${GITHUB_SERVER_URL}/${repoMatch[1]}/${repoMatch[2]}/tree/${finalBranchName}`;
+      // Extract owner/repo from jobUrl - support both GitHub and Forgejo URL patterns
+      const githubMatch = jobUrl.match(/github\.com\/([^\/]+)\/([^\/]+)\//);
+      const forgejoMatch = jobUrl.match(/https?:\/\/[^\/]+\/([^\/]+)\/([^\/]+)\//);
+      
+      if (githubMatch) {
+        branchUrl = `${GITHUB_SERVER_URL}/${githubMatch[1]}/${githubMatch[2]}/tree/${finalBranchName}`;
+      } else if (forgejoMatch) {
+        // For Forgejo, extract the base URL from jobUrl and use /src/branch/ instead of /tree/
+        const baseUrlMatch = jobUrl.match(/^(https?:\/\/[^\/]+)/);
+        if (baseUrlMatch) {
+          branchUrl = `${baseUrlMatch[1]}/${forgejoMatch[1]}/${forgejoMatch[2]}/src/branch/${finalBranchName}`;
+        }
       }
     }
 
@@ -192,9 +200,17 @@ export function updateCommentBody(input: CommentUpdateInput): string {
   // Remove any existing View job run, branch links from the bottom
   bodyContent = bodyContent.replace(/\n?\[View job run\]\([^\)]+\)/g, "");
   bodyContent = bodyContent.replace(/\n?\[View branch\]\([^\)]+\)/g, "");
+  
+  // Also remove Claude's format: "Job run: [branch-name](url)"
+  // This handles both standalone lines and lines with --- prefix
+  bodyContent = bodyContent.replace(/^Job run: \[[^\]]+\]\([^\)]+\)\n?/gm, "");
+  bodyContent = bodyContent.replace(/\n?---\n?Job run: \[[^\]]+\]\([^\)]+\)/g, "");
 
   // Remove any existing duration info at the bottom
   bodyContent = bodyContent.replace(/\n*---\n*Duration: [0-9]+m? [0-9]+s/g, "");
+  
+  // Clean up any multiple consecutive newlines that might be left
+  bodyContent = bodyContent.replace(/\n{3,}/g, "\n\n");
 
   // Add the cleaned body content
   newBody += bodyContent;

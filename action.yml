@@ -94,6 +94,21 @@ inputs:
     required: false
     default: "false"
 
+  # Forgejo configuration
+  use_forgejo:
+    description: "Use Forgejo instead of GitHub (automatically detected if not specified)"
+    required: false
+    default: "false"
+  forgejo_url:
+    description: "Forgejo instance API URL (e.g. https://forgejo.example.com/api/v1)"
+    required: false
+  forgejo_external_url:
+    description: "Forgejo instance external URL for PR links (e.g. https://forgejo.example.com)"
+    required: false
+  forgejo_token:
+    description: "Forgejo access token with repo and pull request permissions"
+    required: false
+
   max_turns:
     description: "Maximum number of conversation turns"
     required: false
@@ -130,7 +145,7 @@ runs:
       uses: oven-sh/setup-bun@735343b667d3e6f658f44d0eca948eb6282f2b76 # https://github.com/oven-sh/setup-bun/releases/tag/v2.0.2
       with:
         bun-version: 1.2.11
-
+        
     - name: Install Dependencies
       shell: bash
       run: |
@@ -260,6 +275,12 @@ runs:
         PREPARE_ERROR: ${{ steps.prepare.outputs.prepare_error || '' }}
         USE_STICKY_COMMENT: ${{ inputs.use_sticky_comment }}
         USE_COMMIT_SIGNING: ${{ inputs.use_commit_signing }}
+        # Forgejo specific
+        USE_FORGEJO: ${{ inputs.use_forgejo }}
+        FORGEJO_URL: ${{ inputs.forgejo_url }}
+        FORGEJO_EXTERNAL_URL: ${{ inputs.forgejo_external_url }}
+        FORGEJO_TOKEN: ${{ inputs.forgejo_token }}
+        FORGEJO_EXTRACTED_URL: ${{ steps.prepare.outputs.FORGEJO_EXTRACTED_URL }}
 
     - name: Display Claude Code Report
       if: steps.prepare.outputs.contains_trigger == 'true' && steps.claude-code.outputs.execution_file != ''
@@ -279,7 +300,7 @@ runs:
         fi
 
     - name: Revoke app token
-      if: always() && inputs.github_token == ''
+      if: always() && inputs.github_token == '' && inputs.use_forgejo != 'true'
       shell: bash
       run: |
         curl -L \

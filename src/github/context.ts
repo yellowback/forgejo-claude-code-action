@@ -9,6 +9,8 @@ import type {
 } from "@octokit/webhooks-types";
 import type { ModeName } from "../modes/types";
 import { DEFAULT_MODE, isValidMode } from "../modes/registry";
+import { detectPlatform, Platform } from "../platform/detector";
+import { isForgejoIssuePR } from "../forgejo/context";
 
 export type ParsedGitHubContext = {
   runId: string;
@@ -54,8 +56,13 @@ export function parseGitHubContext(): ParsedGitHubContext {
     throw new Error(`Invalid mode: ${modeInput}.`);
   }
 
+  const platformConfig = detectPlatform();
+  const runId = platformConfig.platform === Platform.Forgejo 
+    ? process.env.GITHUB_RUN_NUMBER!
+    : process.env.GITHUB_RUN_ID!;
+    
   const commonFields = {
-    runId: process.env.GITHUB_RUN_ID!,
+    runId: runId,
     eventName: context.eventName,
     eventAction: context.payload.action,
     repository: {
@@ -94,13 +101,19 @@ export function parseGitHubContext(): ParsedGitHubContext {
       };
     }
     case "issue_comment": {
+      const platformConfig = detectPlatform();
+      const issueCommentPayload = context.payload as IssueCommentEvent;
+      
+      // For Forgejo, use custom PR detection
+      const isPR = platformConfig.platform === Platform.Forgejo
+        ? isForgejoIssuePR(context)
+        : Boolean(issueCommentPayload.issue.pull_request);
+      
       return {
         ...commonFields,
-        payload: context.payload as IssueCommentEvent,
-        entityNumber: (context.payload as IssueCommentEvent).issue.number,
-        isPR: Boolean(
-          (context.payload as IssueCommentEvent).issue.pull_request,
-        ),
+        payload: issueCommentPayload,
+        entityNumber: issueCommentPayload.issue.number,
+        isPR,
       };
     }
     case "pull_request": {

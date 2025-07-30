@@ -13,6 +13,7 @@ import {
   type ParsedGitHubContext,
 } from "../../context";
 import type { Octokit } from "@octokit/rest";
+import { detectPlatform, Platform } from "../../../platform/detector";
 
 const CLAUDE_APP_BOT_ID = 209825114;
 
@@ -25,6 +26,8 @@ export async function createInitialComment(
   const jobRunLink = createJobRunLink(owner, repo, context.runId);
   const initialBody = createCommentBody(jobRunLink);
 
+  const platformConfig = detectPlatform();
+  
   try {
     let response;
 
@@ -63,8 +66,9 @@ export async function createInitialComment(
           body: initialBody,
         });
       }
-    } else if (isPullRequestReviewCommentEvent(context)) {
+    } else if (isPullRequestReviewCommentEvent(context) && platformConfig.platform !== Platform.Forgejo) {
       // Only use createReplyForReviewComment if it's a PR review comment AND we have a comment_id
+      // Skip this for Forgejo as it might not support this endpoint
       response = await octokit.rest.pulls.createReplyForReviewComment({
         owner,
         repo,
