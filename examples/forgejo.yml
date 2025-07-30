@@ -28,7 +28,7 @@ jobs:
       - name: Install git and other dependencies
         run: |
           apt-get update
-          apt-get install -y git curl unzip jq
+          apt-get install -y git curl unzip jq nodejs
 
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -37,8 +37,6 @@ jobs:
 
       - name: Run Claude Forgejo Action
         uses: https://github.com/yellowback/forgejo-claude-code-action@v0-forgejo
-        # Or use your forked version:
-        # uses: https://your-forgejo.com/actions/claude-code-action-forgejo@main
         with:
           # Forgejo configuration
           forgejo_url: ${{ env.GITHUB_API_URL }}  # Forgejo sets this automatically
