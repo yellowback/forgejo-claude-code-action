@@ -18,42 +18,14 @@ export interface PlatformConfig {
  * Detects the current platform based on environment variables and API endpoints
  */
 export function detectPlatform(): PlatformConfig {
-  // Check if explicitly set to use Forgejo
-  if (process.env.USE_FORGEJO === 'true') {
-    return {
-      platform: Platform.Forgejo,
-      apiUrl: process.env.FORGEJO_API_URL || process.env.GITHUB_API_URL || 'https://api.github.com',
-      apiVersion: 'v1',
-      isGraphQLSupported: false,
-    };
-  }
-
-  // Check if FORGEJO_* environment variables are set
-  if (process.env.FORGEJO_API_URL || process.env.FORGEJO_TOKEN) {
-    return {
-      platform: Platform.Forgejo,
-      apiUrl: process.env.FORGEJO_API_URL || process.env.GITHUB_API_URL || 'https://api.github.com',
-      apiVersion: 'v1',
-      isGraphQLSupported: false,
-    };
-  }
-
-  // Check API URL pattern for Forgejo/Gitea
-  const apiUrl = process.env.GITHUB_API_URL || 'https://api.github.com';
-  if (apiUrl.includes('/api/v1') || apiUrl.includes('forgejo') || apiUrl.includes('gitea')) {
-    return {
-      platform: Platform.Forgejo,
-      apiUrl,
-      apiVersion: 'v1',
-      isGraphQLSupported: false,
-    };
-  }
-
-  // Default to GitHub
+  // This is a Forgejo-specific branch, always return Forgejo configuration
+  const apiUrl = process.env.FORGEJO_API_URL || process.env.GITHUB_API_URL || 'https://api.github.com';
+  
   return {
-    platform: Platform.GitHub,
+    platform: Platform.Forgejo,
     apiUrl,
-    isGraphQLSupported: true,
+    apiVersion: 'v1',
+    isGraphQLSupported: false,
   };
 }
 

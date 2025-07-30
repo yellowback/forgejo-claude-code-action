@@ -95,10 +95,6 @@ inputs:
     default: "false"
 
   # Forgejo configuration
-  use_forgejo:
-    description: "Use Forgejo instead of GitHub (automatically detected if not specified)"
-    required: false
-    default: "false"
   forgejo_url:
     description: "Forgejo instance API URL (e.g. https://forgejo.example.com/api/v1)"
     required: false
@@ -276,7 +272,6 @@ runs:
         USE_STICKY_COMMENT: ${{ inputs.use_sticky_comment }}
         USE_COMMIT_SIGNING: ${{ inputs.use_commit_signing }}
         # Forgejo specific
-        USE_FORGEJO: ${{ inputs.use_forgejo }}
         FORGEJO_URL: ${{ inputs.forgejo_url }}
         FORGEJO_EXTERNAL_URL: ${{ inputs.forgejo_external_url }}
         FORGEJO_TOKEN: ${{ inputs.forgejo_token }}
@@ -299,13 +294,3 @@ runs:
           echo '```' >> $GITHUB_STEP_SUMMARY
         fi
 
-    - name: Revoke app token
-      if: always() && inputs.github_token == '' && inputs.use_forgejo != 'true'
-      shell: bash
-      run: |
-        curl -L \
-          -X DELETE \
-          -H "Accept: application/vnd.github+json" \
-          -H "Authorization: Bearer ${{ steps.prepare.outputs.GITHUB_TOKEN }}" \
-          -H "X-GitHub-Api-Version: 2022-11-28" \
-          ${GITHUB_API_URL:-https://api.github.com}/installation/token

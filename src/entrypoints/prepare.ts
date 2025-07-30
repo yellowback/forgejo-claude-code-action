@@ -25,9 +25,6 @@ import { detectPlatform, Platform } from "../platform/detector";
 async function run() {
   try {
     // Set Forgejo environment variables if configured
-    if (process.env.INPUT_USE_FORGEJO === 'true') {
-      process.env.USE_FORGEJO = 'true';
-    }
     if (process.env.INPUT_FORGEJO_URL) {
       process.env.FORGEJO_API_URL = process.env.INPUT_FORGEJO_URL;
     }

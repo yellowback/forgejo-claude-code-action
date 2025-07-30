@@ -35,12 +35,11 @@ jobs:
           fetch-depth: 1
 
       - name: Run Claude Forgejo Action
-        uses: https://github.com/anthropics/claude-code-action@forgejo-support
+        uses: https://github.com/anthropics/claude-code-action@forgejo
         # Or use your forked version:
         # uses: https://your-forgejo.com/actions/claude-code-action-forgejo@main
         with:
           # Forgejo configuration
-          use_forgejo: "true"
           forgejo_url: ${{ env.GITHUB_API_URL }}  # Forgejo sets this automatically
           forgejo_token: ${{ secrets.FORGEJO_TOKEN }}
           

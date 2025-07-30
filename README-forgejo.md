@@ -69,9 +69,8 @@ jobs:
           token: ${{ secrets.FORGEJO_TOKEN }}
 
       - name: Run Claude Forgejo Action
-        uses: https://github.com/anthropics/claude-code-action@forgejo-support
+        uses: https://github.com/anthropics/claude-code-action@forgejo
         with:
-          use_forgejo: "true"
           forgejo_url: ${{ env.GITHUB_API_URL }}
           forgejo_token: ${{ secrets.FORGEJO_TOKEN }}
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
@@ -101,7 +100,6 @@ Add the `claude` label to an issue to trigger the action.
 ## Configuration Options
 
 ### Required Parameters
-- `use_forgejo`: Set to `"true"` to enable Forgejo mode
 - `forgejo_token`: Forgejo access token (usually from secrets)
 - `anthropic_api_key`: Your Anthropic API key
 
@@ -163,7 +161,6 @@ If migrating from GitHub to Forgejo:
 2. Update `runs-on: ubuntu-latest` to `runs-on: docker`
 3. Replace GitHub-specific action references with Forgejo equivalents
 4. Update authentication to use Forgejo tokens
-5. Add the `use_forgejo: "true"` parameter
 
 ## Support
 
