@@ -22,12 +22,13 @@ jobs:
     
     runs-on: docker
     container:
-      image: node:20-alpine
+      image: ubuntu:latest
     
     steps:
       - name: Install git and other dependencies
         run: |
-          apk add --no-cache git bash curl
+          apt-get update
+          apt-get install -y git curl unzip jq
 
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -49,10 +50,10 @@ jobs:
           #model: "claude-3-5-sonnet-20241022"
           
           # Action behavior
-          trigger_phrase: "@claude"
-          timeout_minutes: "30"
-          branch_prefix: "claude/"
-          use_sticky_comment: "true"
+          #trigger_phrase: "@claude"
+          timeout_minutes: "180"
+          #branch_prefix: "claude/"
+          #use_sticky_comment: "true"
           
           # Tools configuration
           allowed_tools: "read,write,bash,grep,ls"
