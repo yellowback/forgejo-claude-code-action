@@ -8,12 +8,16 @@ This is a Forgejo-compatible version of the Claude Code Action that enables Clau
 2. **Token Authentication Only**: OIDC token exchange with Anthropic is not supported; use direct token authentication
 3. **Workflow Location**: Place workflows in `.forgejo/workflows/` instead of `.github/workflows/`
 4. **Runner Configuration**: Use `runs-on: docker` instead of `runs-on: ubuntu-latest`
+5. **Action Reference**: Uses `https://github.com/yellowback/forgejo-claude-code-action@v0-forgejo` instead of the main action
+6. **Container Environment**: Runs in `ubuntu:latest` container with manual dependency installation
 
 ## Prerequisites
 
 - Forgejo instance with Actions enabled
 - Forgejo Runner installed and configured
-- Anthropic API key
+- Either:
+  - Anthropic API key (for direct API access)
+  - Claude Code OAuth token (for Pro/Max users)
 
 ## Installation
 
@@ -30,7 +34,9 @@ This is a Forgejo-compatible version of the Claude Code Action that enables Clau
 
 In your repository settings, add these secrets:
 - `FORGEJO_TOKEN`: Your Forgejo access token
-- `ANTHROPIC_API_KEY`: Your Anthropic API key
+- Either:
+  - `ANTHROPIC_API_KEY`: Your Anthropic API key (for direct API access)
+  - `CLAUDE_CODE_OAUTH_TOKEN`: Your Claude Code OAuth token (Pro and Max users can generate this by running `claude setup-token` locally)
 
 ### 3. Create the Workflow File
 
@@ -44,38 +50,37 @@ on:
     types: [created]
   issues:
     types: [opened, assigned, labeled]
-  pull_request:
-    types: [opened, synchronize]
 
 jobs:
-  claude-forgejo:
+  claude-forgejo-action:
     if: |
       (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude')) ||
       (github.event_name == 'issues' && contains(github.event.issue.body, '@claude'))
     
     runs-on: docker
     container:
-      image: node:20-alpine
+      image: ubuntu:latest
     
     steps:
       - name: Install dependencies
         run: |
-          apk add --no-cache git bash curl
+          apt-get update
+          apt-get install -y git curl unzip jq nodejs
 
       - name: Checkout repository
-        uses: https://code.forgejo.org/actions/checkout@v4
-        with:
-          fetch-depth: 0
-          token: ${{ secrets.FORGEJO_TOKEN }}
+        uses: actions/checkout@v4
 
       - name: Run Claude Forgejo Action
-        uses: https://github.com/anthropics/claude-code-action@forgejo
+        uses: https://github.com/yellowback/forgejo-claude-code-action@v0-forgejo
         with:
-          forgejo_url: ${{ env.GITHUB_API_URL }}
           forgejo_token: ${{ secrets.FORGEJO_TOKEN }}
-          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
-          trigger_phrase: "@claude"
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          # Or use: anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          timeout_minutes: "180"
+          allowed_tools: "read,write,bash,grep,ls"
 ```
+
+> **📋 Full Example**: For a complete workflow with all trigger conditions, custom instructions, and configuration options, see [`examples/forgejo.yml`](./examples/forgejo.yml)
 
 ## Usage
 
@@ -101,16 +106,19 @@ Add the `claude` label to an issue to trigger the action.
 
 ### Required Parameters
 - `forgejo_token`: Forgejo access token (usually from secrets)
-- `anthropic_api_key`: Your Anthropic API key
+- Either:
+  - `anthropic_api_key`: Your Anthropic API key
+  - `claude_code_oauth_token`: Your Claude Code OAuth token
 
 ### Optional Parameters
 - `forgejo_url`: Forgejo API URL (auto-detected from `GITHUB_API_URL` if not specified)
 - `model`: Claude model to use (default: `claude-3-5-sonnet-20241022`)
 - `trigger_phrase`: Phrase to trigger Claude (default: `@claude`)
 - `branch_prefix`: Prefix for branches created by Claude (default: `claude/`)
-- `timeout_minutes`: Timeout for Claude's response (default: `30`)
-- `allowed_tools`: Tools Claude can use (default includes file operations and bash)
+- `timeout_minutes`: Timeout for Claude's response (default: `30`, example uses `180`)
+- `allowed_tools`: Tools Claude can use (example: `"read,write,bash,grep,ls"`)
 - `custom_instructions`: Additional instructions for Claude
+- `use_sticky_comment`: Use a single comment that updates with progress (default: `true`)
 
 ## Limitations
 

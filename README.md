@@ -2,6 +2,8 @@
 
 # Claude Code Action
 
+> **🔧 Looking for Forgejo support?** See the [Forgejo setup guide](./README-forgejo.md) for instructions on using this action with Forgejo instances.
+
 A general-purpose [Claude Code](https://claude.ai/code) action for GitHub PRs and issues that can answer questions and implement code changes. This action listens for a trigger phrase in comments and activates Claude act on the request. It supports multiple authentication methods including Anthropic direct API, Amazon Bedrock, and Google Vertex AI.
 
 ## Features
